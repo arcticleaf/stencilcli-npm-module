@@ -38,7 +38,7 @@ module.exports = (options, callback) => {
         }
 
         server.start(() => {
-            console.log(logo);
+            // console.log(logo);
 
             if (options.stencilEditorEnabled) {
                 options.themeServer = server;

@@ -1,5 +1,5 @@
 {
-  "name": "@bigcommerce/stencil-cli",
+  "name": "@ali/stencil-cli",
   "version": "1.14.3",
   "description": "CLI tool to run BigCommerce Stores locally for theme development.",
   "main": "index.js",
