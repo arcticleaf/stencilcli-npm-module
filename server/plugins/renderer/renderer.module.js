@@ -387,7 +387,7 @@ internals.getPencilResponse = function (data, request, response, configuration) 
     data.context.theme_settings = configuration.settings;
 
     // change cdn settings to serve local assets
-    data.context.settings.cdn_url = '';
+    data.context.settings.cdn_url = configuration.cdn_url || '';
     data.context.settings.theme_version_id = Utils.int2uuid(1);
     data.context.settings.theme_config_id = Utils.int2uuid(request.app.themeConfig.variationIndex + 1);
     data.context.settings.theme_session_id = null;
