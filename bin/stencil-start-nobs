@@ -79,6 +79,14 @@ if (!(dotStencilFile.normalStoreUrl) || !(dotStencilFile.customLayouts)) {
     );
 }
 
+if(dotStencilFile.dns) {
+	const dns = require('evil-dns');
+	Object.keys(dotStencilFile.dns).forEach((domain) => {
+		console.log(`Evil-dns registering ${domain} with ${dotStencilFile.dns[domain]}`);
+		dns.add(domain, dotStencilFile.dns[domain]);
+	});
+}
+
 headers = {
     'stencil-cli': Pkg.version,
 };
