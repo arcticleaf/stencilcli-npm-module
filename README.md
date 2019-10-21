@@ -6,11 +6,11 @@
 The BigCommerce server emulator for local theme development.
 
 ## Install
-_Note: Stencil requires the Node.js runtime environment, version 4.x through 7.x._
+_Note: Stencil requires the Node.js runtime environment, version 8.x or 10.x We do not yet have support for Node 12 or greater._
 
 Run `npm install -g @bigcommerce/stencil-cli`.
 
-Visit the [installation guide](https://stencil.bigcommerce.com/docs/installing-stencil-cli-1) for more details.
+Visit the [installation guide](https://developer.bigcommerce.com/stencil-docs/getting-started/installing-stencil) for more details.
 
 ## Usage
 
@@ -63,6 +63,9 @@ Stencil CLI comes packaged with [Autoprefixer](https://github.com/postcss/autopr
 ## How to get help or report a bug
 
 If you need any help or experience any bugs, please create a GitHub issue in this repository.
+
+## Release stencil-cli
+In order to release stencil-cli you should first use the `Squash and merge` option on GitHub, This step is important for generating the `CHANGELOG.md` file with the pr link attached (if not using `Squash and merge`, the changes will be logged only with links to the commits). After the changes are merged to master, pull the latest to your local environment, run `gulp release` and follow the prompts. NOTE: It is required that all commit messages follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0-beta.2/) structure.
 
 ## License
 

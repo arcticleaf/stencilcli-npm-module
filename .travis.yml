@@ -2,13 +2,17 @@ language: node_js
 os:
   - linux
   - osx
+addons:
+  ssh_known_hosts:
+    - github.com 
 node_js:
-  - 6
   - 8
+  - 10
+
 cache:
   directories:
     - node_modules
 install:
-  - npm install --production
+  - npm install 
 script:
   - npm test
