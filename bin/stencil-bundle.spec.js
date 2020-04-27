@@ -22,7 +22,7 @@ describe('Stencil Bundle', () => {
     let Bundle;
 
     lab.beforeEach(done => {
-        sandbox = Sinon.sandbox.create();
+        sandbox = Sinon.createSandbox();
         const themeConfigStub = getThemeConfigStub();
         const rawConfig = {
             "name": "Cornerstone",
@@ -177,7 +177,7 @@ describe('Stencil Bundle', () => {
             expect(err.message).to.contain('no such file or directory');
             done();
         });
-    })
+    });
 
     function getThemeConfigStub() {
         const rawConfig = {

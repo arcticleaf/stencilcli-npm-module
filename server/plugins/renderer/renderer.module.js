@@ -87,7 +87,7 @@ internals.getResponse = function (request, callback) {
     // Convert QueryParams with array values to php compatible names (brackets [])
     urlObject.query = _.mapKeys(urlObject.query, function (value, key) {
         if (_.isArray(value)) {
-            return key + '[]'
+            return key + '[]';
         }
 
         return key;
@@ -187,7 +187,7 @@ internals.parseResponse = function (bcAppData, request, response, responseArgs, 
         return callback(null, new Responses.RawResponse(
             bcAppData,
             response.headers,
-            response.statusCode
+            response.statusCode,
         ));
     }
 
@@ -245,6 +245,10 @@ internals.parseResponse = function (bcAppData, request, response, responseArgs, 
                     data: data,
                     response: response,
                 }, internals.cacheTTL);
+
+                if (response.headers['set-cookie']) {
+                    response.headers['set-cookie'] = Utils.stripDomainFromCookies(response.headers['set-cookie']);
+                }
 
                 return callback(null, internals.getPencilResponse(data, request, response, configuration));
             });
@@ -330,7 +334,7 @@ internals.redirect = function (response, request, callback) {
     return callback(null, new Responses.RedirectResponse(
         response.headers.location,
         response.headers,
-        response.statusCode
+        response.statusCode,
     ));
 };
 
@@ -390,7 +394,7 @@ internals.getPencilResponse = function (data, request, response, configuration) 
     data.context.settings.theme_version_id = Utils.int2uuid(1);
     data.context.settings.theme_config_id = Utils.int2uuid(request.app.themeConfig.variationIndex + 1);
     data.context.settings.theme_session_id = null;
-    data.context.settings.maintenance = {secure_path: `http://localhost:${internals.options.stencilEditorPort}`};
+    data.context.settings.maintenance = {secure_path: `http://localhost:${internals.options.stencilServerPort}`};
 
     return new Responses.PencilResponse({
         template_file: internals.getTemplatePath(request.path, data),
@@ -474,7 +478,7 @@ internals.themeAssembler = {
                 }
                 return resolve(processor(templates));
             });
-        })
+        });
     },
     getTranslations: () => {
         return new Promise((resolve, reject) => {
@@ -484,7 +488,7 @@ internals.themeAssembler = {
                 }
                 return resolve(_.mapValues(translations, locales => JSON.parse(locales)));
             });
-        })
+        });
     },
 };
 

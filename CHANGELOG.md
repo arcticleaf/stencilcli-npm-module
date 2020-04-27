@@ -1,3 +1,102 @@
+<a name="2.0.0"></a>
+## 2.0.0 (2020-03-24)
+
+* fix: address chrome cookie SameSite issue ([5938ce1](https://github.com/bigcommerce/stencil-cli/commit/5938ce1))
+* feat: add schema validation to bundle process ([b86d440](https://github.com/bigcommerce/stencil-cli/commit/b86d440))
+* feat: bump paper ([f1d2b5a](https://github.com/bigcommerce/stencil-cli/commit/f1d2b5a))
+* feat: deprecate theme editor ([c0466dc](https://github.com/bigcommerce/stencil-cli/commit/c0466dc))
+* feat(translate): added the translationsSchema.json file into a bundle ([ba04cd6](https://github.com/bigcommerce/stencil-cli/commit/ba04cd6))
+* feat(translate): added validation for schemaTranslations.json ([fccafe2](https://github.com/bigcommerce/stencil-cli/commit/fccafe2))
+* feat(translate): fixed regarding reviewers notes ([0a1f43d](https://github.com/bigcommerce/stencil-cli/commit/0a1f43d))
+
+
+
+<a name="1.23.1"></a>
+## <small>1.23.1 (2020-02-18)</small>
+
+* fix: add hapi as a direct dependency to lock down hapi version ([3b9a258](https://github.com/bigcommerce/stencil-cli/commit/3b9a258))
+
+
+
+<a name="1.23.0"></a>
+## 1.23.0 (2020-02-17)
+
+* fix: move code to dev dependency ([f1fd570](https://github.com/bigcommerce/stencil-cli/commit/f1fd570))
+* fix: remove less dependency and ref since it is not supported or used ([c586dd8](https://github.com/bigcommerce/stencil-cli/commit/c586dd8))
+* fix: tunnel issues and add support for tunnel names ([820fa4d](https://github.com/bigcommerce/stencil-cli/commit/820fa4d))
+* fix: update readme to reflect node 8 is no longer supported ([6e793a9](https://github.com/bigcommerce/stencil-cli/commit/6e793a9))
+* feat: drop node 8 support ([5aa1624](https://github.com/bigcommerce/stencil-cli/commit/5aa1624))
+* feat: move lab to dev deps and update it to 14.3.3 ([0f57631](https://github.com/bigcommerce/stencil-cli/commit/0f57631))
+* feat: remove hapi as a direct dependecy ([3164fbc](https://github.com/bigcommerce/stencil-cli/commit/3164fbc))
+* feat: update browser sync to use latest master ([0916991](https://github.com/bigcommerce/stencil-cli/commit/0916991))
+* feat: update colors dependency ([b488557](https://github.com/bigcommerce/stencil-cli/commit/b488557))
+* feat: upgrade lodash dependency ([640c61d](https://github.com/bigcommerce/stencil-cli/commit/640c61d))
+* feat(dependencies): update eslint to the latest and fix lint errors ([5a2fd85](https://github.com/bigcommerce/stencil-cli/commit/5a2fd85))
+
+
+
+<a name="1.22.0"></a>
+## 1.22.0 (2020-02-10)
+
+* feat(dependencies): remove compression as a dependency ([2c02e9e](https://github.com/bigcommerce/stencil-cli/commit/2c02e9e))
+* feat(dependencies): remove decompress-zip as a dependency ([34c7fde](https://github.com/bigcommerce/stencil-cli/commit/34c7fde))
+* feat(dependencies): remove express as a dependecy since it is not used ([ba1c2c5](https://github.com/bigcommerce/stencil-cli/commit/ba1c2c5))
+* feat(dependencies): remove gulp git, sass, sass-lint dependency ([14dceeb](https://github.com/bigcommerce/stencil-cli/commit/14dceeb))
+* feat(dependencies): remove install as a dependency since it is not used ([1c2549c](https://github.com/bigcommerce/stencil-cli/commit/1c2549c))
+* feat(dependencies): remove npm as a dependency ([4733649](https://github.com/bigcommerce/stencil-cli/commit/4733649))
+* feat(dependencies): remove script-loader as a direct dependecy ([9a2b817](https://github.com/bigcommerce/stencil-cli/commit/9a2b817))
+* feat(dependencies): update dev dependency ([d5bdfe3](https://github.com/bigcommerce/stencil-cli/commit/d5bdfe3))
+
+
+
+<a name="1.21.6"></a>
+## <small>1.21.6 (2020-02-04)</small>
+
+* Add feature to allow pulling live config files (#550) ([43558fc](https://github.com/bigcommerce/stencil-cli/commit/43558fc))
+* fix: add account_payment_methods_v2 to theme config schema ([373a485](https://github.com/bigcommerce/stencil-cli/commit/373a485))
+* feat(dependencies): remove dateformat as a direct dependecy ([6044e91](https://github.com/bigcommerce/stencil-cli/commit/6044e91))
+
+
+
+<a name="1.21.5"></a>
+## <small>1.21.5 (2020-01-30)</small>
+
+* feat: add flag to auto-delete oldest theme during push ([ea93793](https://github.com/bigcommerce/stencil-cli/commit/ea93793))
+* feat: bump paper to 3.0.0-rc.27 ([86e4f74](https://github.com/bigcommerce/stencil-cli/commit/86e4f74))
+* fix: more detailed theme variation error ([96e3a30](https://github.com/bigcommerce/stencil-cli/commit/96e3a30))
+* fix: schema.json formatting ([73c8a26](https://github.com/bigcommerce/stencil-cli/commit/73c8a26))
+
+
+
+<a name="1.21.4"></a>
+## <small>1.21.4 (2019-12-20)</small>
+
+
+
+
+<a name="1.21.3"></a>
+## <small>1.21.3 (2019-12-20)</small>
+
+* fix: avoid caching of storefront api responses ([9974a07](https://github.com/bigcommerce/stencil-cli/commit/9974a07))
+* fix: correcting url for deploy issues docs ([44ef5e9](https://github.com/bigcommerce/stencil-cli/commit/44ef5e9))
+* fix: fix origin sent with graphql requests (#541) ([8f3f02c](https://github.com/bigcommerce/stencil-cli/commit/8f3f02c))
+
+
+
+<a name="1.21.2"></a>
+## <small>1.21.2 (2019-11-15)</small>
+
+* fix: bump stencil-styles to 1.2.0 ([97389b9](https://github.com/bigcommerce/stencil-cli/commit/97389b9))
+
+
+
+<a name="1.21.1"></a>
+## <small>1.21.1 (2019-10-22)</small>
+
+* fix: update paper to 3.0.0-rc.26 ([32ef114](https://github.com/bigcommerce/stencil-cli/commit/32ef114))
+
+
+
 <a name="1.21.0"></a>
 ## 1.21.0 (2019-10-14)
 
