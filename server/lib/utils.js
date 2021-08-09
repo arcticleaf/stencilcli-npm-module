@@ -1,54 +1,48 @@
-'use strict';
-
-const _ = require('lodash');
-const Url = require('url');
 const uuidRegExp = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-([0-9a-f]{12})';
 
 /**
- * Strip domain from cookies
+ * Strip domain from the cookies header string
  *
- * @param cookies
- * @returns {Array}
+ * @param {string[]} cookies
+ * @returns {string[]}
  */
 function stripDomainFromCookies(cookies) {
-    const fixedCookies = [];
-
-    _.forEach(cookies, function(cookie) {
-        fixedCookies.push(cookie.replace(/(?:;\s)?domain=(?:.+?)(;|$)/, '$1').replace('; SameSite=none', ''));
-    });
-
-    return fixedCookies;
+    return cookies.map((val) =>
+        val
+            .replace(/(?:;\s)?domain=(?:.+?)(;|$)/gi, '$1')
+            .replace(new RegExp('; SameSite=none', 'gi'), ''),
+    );
 }
 
 /**
  * Strip domain from redirectUrl if it matches the current storeUrl, if not, leave it.
  *
- * @param request
- * @param redirectUrl
+ * @param {string} redirectUrl
+ * @param {{ normalStoreUrl, storeUrl}} config
  * @returns {string}
  */
-function normalizeRedirectUrl(request, redirectUrl) {
-    const storeHost = Url.parse(request.app.normalStoreUrl).host;
-    const secureStoreHost = Url.parse(request.app.storeUrl).host;
-    const redirectUrlObj = Url.parse(redirectUrl);
-    let stripHost = false;
-
-    if (! redirectUrlObj.host || redirectUrlObj.host === storeHost || redirectUrlObj.host === secureStoreHost) {
-        stripHost = true;
+function normalizeRedirectUrl(redirectUrl, config) {
+    if (!redirectUrl || !redirectUrl.startsWith('http')) {
+        return redirectUrl; // already stripped, skip
     }
 
-    if (stripHost) {
-        return redirectUrlObj.path;
-    } else {
-        return redirectUrl;
+    const storeHost = new URL(config.normalStoreUrl).host;
+    const secureStoreHost = new URL(config.storeUrl).host;
+    const redirectUrlObj = new URL(redirectUrl);
+
+    if (redirectUrlObj.host === storeHost || redirectUrlObj.host === secureStoreHost) {
+        // Need to strip
+        return redirectUrlObj.pathname + redirectUrlObj.search + redirectUrlObj.hash;
     }
+
+    return redirectUrl; // Different host, shouldn't strip
 }
 
 /**
  * Convert a number to uuid
  *
- * @param {Number} number
- * @returns {String}
+ * @param {number} number
+ * @returns {string}
  */
 function int2uuid(number) {
     const id = `000000000000${number}`.substr(-12);
@@ -58,8 +52,8 @@ function int2uuid(number) {
 /**
  * Convert a uuid to int
  *
- * @param {String} uuid
- * @returns {Number}
+ * @param {string} uuid
+ * @returns {number}
  */
 function uuid2int(uuid) {
     const match = uuid.match(new RegExp(uuidRegExp));

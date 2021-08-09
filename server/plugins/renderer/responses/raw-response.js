@@ -1,59 +1,78 @@
-const _ = require('lodash');
 const cheerio = require('cheerio');
-const Utils = require('../../../lib/utils');
+const utils = require('../../../lib/utils');
+
 const internals = {
-    stubActiveVersion: Utils.int2uuid(1),
-    stubActiveConfig: Utils.int2uuid(1),
+    stubActiveVersion: utils.int2uuid(1),
+    stubActiveConfig: utils.int2uuid(1),
 };
 
-/**
- * @param {buffer} data
- * @param {object} headers
- * @param {string} statusCode
- * @return {object} response
- */
-function RawResponse(data, headers, statusCode) {
+class RawResponse {
+    /**
+     * @param {buffer} data
+     * @param {{[string]: string[]}} headers
+     * @param {string} statusCode
+     * @returns {object} response
+     */
+    constructor(data, headers, statusCode) {
+        this.data = data;
+        this.headers = headers;
+        this.statusCode = statusCode;
+    }
 
-    this.respond = function (request, reply) {
-        var payload = data;
-        internals.stubActiveConfig = Utils.int2uuid(request.app.themeConfig.variationIndex + 1);
+    respond(request, h) {
+        let payload = this.data;
+        internals.stubActiveConfig = utils.int2uuid(request.app.themeConfig.variationIndex + 1);
 
-        if (request.url.path.startsWith('/checkout.php') || request.url.path.startsWith('/finishorder.php')) {
-            payload = appendCss(payload.toString('utf8'));
+        if (
+            request.path.startsWith('/checkout.php') ||
+            request.path.startsWith('/finishorder.php')
+        ) {
+            payload = this._appendCss(payload.toString('utf8'));
         }
 
         // To be removed when we go to Phase 3
-        if (request.url.path.startsWith('/checkout')) {
-            payload = payload.toString('utf8')
+        if (request.path.startsWith('/checkout')) {
+            payload = payload
+                .toString('utf8')
                 .replace(
                     /http[s]?:\/\/.*?\/optimized-checkout.css/,
                     `/stencil/${internals.stubActiveVersion}/${internals.stubActiveConfig}/css/optimized-checkout.css`,
                 );
         }
 
-        const response = reply(payload).code(statusCode);
+        const response = h.response(payload).code(this.statusCode);
 
-        _.each(headers, (value, name) => {
-            if (['transfer-encoding', 'content-length'].indexOf(name) === -1) {
-                response.header(name, value);
+        for (const [name, values] of Object.entries(this.headers)) {
+            switch (name) {
+                case 'transfer-encoding':
+                case 'content-length':
+                    break;
+                case 'set-cookie':
+                    // Cookies should be an array
+                    response.header('set-cookie', values);
+                    break;
+                default:
+                    // Other headers should be strings
+                    response.header(name, values.toString());
             }
-        });
+        }
 
         return response;
-    };
-}
+    }
 
-/**
- * Append checkout.css to override styles.
- * @param {string} payload
- * @returns {string}
- */
-function appendCss(payload) {
-    const dom = cheerio.load(payload);
-    const url = `/stencil/${internals.stubActiveVersion}/${internals.stubActiveConfig}/css/checkout.css`;
+    /**
+     * @private
+     * Append checkout.css to override styles.
+     * @param {string} payload
+     * @returns {string}
+     */
+    _appendCss(payload) {
+        const dom = cheerio.load(payload);
+        const url = `/stencil/${internals.stubActiveVersion}/${internals.stubActiveConfig}/css/checkout.css`;
 
-    dom('head').append(`<link href="${url}" type="text/css" rel="stylesheet">`);
-    return dom.html();
+        dom('head').append(`<link href="${url}" type="text/css" rel="stylesheet">`);
+        return dom.html();
+    }
 }
 
 module.exports = RawResponse;
