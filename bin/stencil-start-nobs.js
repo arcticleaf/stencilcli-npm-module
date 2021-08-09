@@ -31,6 +31,8 @@ const options = {
     apiHost: cliOptions.host || API_HOST,
     tunnel: cliOptions.tunnel,
     cache: cliOptions.cache,
+    disableBS: true,
+    displayShippyPath: true,
 };
 
 new StencilStart().run(options).catch(printCliResultErrorAndExit);
