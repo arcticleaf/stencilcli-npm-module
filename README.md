@@ -1,16 +1,20 @@
 # Stencil CLI
 
-[![npm (scoped)](https://img.shields.io/npm/v/@bigcommerce/stencil-cli.svg)](https://www.npmjs.com/package/@bigcommerce/stencil-cli) [![Travis](https://travis-ci.org/bigcommerce/stencil-cli.svg?branch=master)](https://travis-ci.org/bigcommerce/stencil-cli) [![AppVeyor](https://ci.appveyor.com/api/projects/status/jejnlajci3dslwfx?svg=true)](https://ci.appveyor.com/project/BigCommerceEngineering/stencil-cli)
-
+[![npm (scoped)](https://img.shields.io/npm/v/@bigcommerce/stencil-cli.svg)](https://www.npmjs.com/package/@bigcommerce/stencil-cli)
+![tests](https://github.com/bigcommerce/stencil-cli/workflows/Tests/badge.svg?branch=master)
 
 The BigCommerce server emulator for local theme development.
 
 ## Install
-_Note: Stencil requires the Node.js runtime environment, version 10.x We do not yet have support for Node 12 or greater._
+
+_Note: Stencil requires the Node.js runtime environment,
+version 10.x and 12.x (Recommended) are supported.
+We do not yet have support for versions greater than Node 12._
 
 Run `npm install -g @bigcommerce/stencil-cli`.
 
-Visit the [installation guide](https://developer.bigcommerce.com/stencil-docs/getting-started/installing-stencil) for more details.
+Visit the [installation guide](https://developer.bigcommerce.com/stencil-docs/getting-started/installing-stencil)
+for more details.
 
 ## Usage
 
@@ -20,10 +24,12 @@ Usage: stencil [options] [command]
 Commands:
 
   init        Interactively create a .stencil file which configures how to run a BigCommerce store locally.
-  start       Starts up BigCommerce store using theme files in the current directory.
+  start       Starts up the BigCommerce storefront local development environment, using theme files in the current directory and data from the live store.
   bundle      Bundles up the theme into a zip file which can be uploaded to BigCommerce.
   release     Create a new release in the theme's github repository.
   push        Bundles up the theme into a zip file and uploads it to your store.
+  pull        Pulls the configuration from the active theme on your live store and updates your local configuration.
+  download    Downloads the theme files from the active theme on your live store.
   help [cmd]  display help for [cmd]
 
 Options:
@@ -38,33 +44,54 @@ Run `stencil start` to run a local server so you can start developing your theme
 
 Run with `-o` or `--open` to automatically open up a browser.
 
-- While stencil is running, you can type "rs" and then hit enter to auto-reload all browsers. This is similar to Nodemon's rs option.
+-   While stencil is running, you can type "rs" and then hit enter to auto-reload all browsers. This is similar to
+    Nodemon's rs option.
 
 Run `stencil bundle` to validate your code and create a zip bundle file that can be uploaded to BigCommerce.
 
-Run `stencil release` to tag a new version of your theme, create a [GitHub release](https://help.github.com/articles/about-releases/) in your theme repository, and upload the zip bundle file to the release assets. This is useful for tracking your changes in your Theme, and is the tool we use to create new releases in BigCommerce [Cornerstone](https://github.com/bigcommerce/stencil) theme.
+Run `stencil release` to tag a new version of your theme, create a [GitHub release](https://help.github.com/articles/about-releases/)
+in your theme repository, and upload the zip bundle file to the release assets.
+This is useful for tracking your changes in your Theme, and is the tool we use to create new releases in BigCommerce
+[Cornerstone](https://github.com/bigcommerce/stencil) theme.
 
-## BrowserSync
+Run `stencil push` to bundle the local theme and upload it to your store, so it will be available in My Themes.
+To push the theme and also activate it, use `stencil push -a`. To automatically delete the oldest theme if you are at
+your theme limit, use `stencil push -d`. These can be used together, as `stencil push -a -d`.
 
-Stencil CLI comes packaged with BrowserSync so you can take advantage of all of those amazing goodies! Have a look at their [web site](http://www.browsersync.io/) for more information.
+Run `stencil pull` to sync changes to your theme configuration from your live store. For example, if Page Builder has
+been used to change certain theme settings, this will update those settings in config.json in your theme files so you
+don't overwrite them on your next upload.
 
-## Sass compiling
+## Features
 
-You can compile Sass (node-sass) scss files in assets/scss into CSS. For example, add an scss file named theme.scss to assets/scss and `{{{stylesheet 'assets/css/theme.css'}}}` to your theme HTML template. Stencil-CLI will compile assets/scss/theme.scss to CSS on the fly.
+### BrowserSync
 
-## Autoprefixer
+Stencil CLI comes packaged with BrowserSync so you can take advantage of all of those amazing goodies!
+Have a look at their [web site](http://www.browsersync.io/) for more information.
 
-Stencil CLI comes packaged with [Autoprefixer](https://github.com/postcss/autoprefixer). You can set which browsers should be targeted, as well as if it should cascade the generated rules in the theme's config.json file with these options:
+### Sass compiling
 
-- `autoprefixer_cascade` - Defaults to `true`.
-- `autoprefixer_browsers` - Defaults to `["> 1%", "last 2 versions", "Firefox ESR"]`.
+You can compile Sass (node-sass) scss files in assets/scss into CSS. For example, add an scss file named theme.scss
+to assets/scss and `{{{stylesheet 'assets/css/theme.css'}}}` to your theme HTML template. Stencil-CLI will compile
+assets/scss/theme.scss to CSS on the fly.
+
+### Autoprefixer
+
+Stencil CLI comes packaged with [Autoprefixer](https://github.com/postcss/autoprefixer). You can set which browsers
+should be targeted, as well as if it should cascade the generated rules in the theme's config.json file with these
+options:
+
+-   `autoprefixer_cascade` - Defaults to `true`.
+-   `autoprefixer_browsers` - Defaults to `["> 1%", "last 2 versions", "Firefox ESR"]`.
 
 ## How to get help or report a bug
 
 If you need any help or experience any bugs, please create a GitHub issue in this repository.
 
-## Release stencil-cli
-In order to release stencil-cli you should first use the `Squash and merge` option on GitHub, This step is important for generating the `CHANGELOG.md` file with the pr link attached (if not using `Squash and merge`, the changes will be logged only with links to the commits). After the changes are merged to master, pull the latest to your local environment, run `gulp release` and follow the prompts. NOTE: It is required that all commit messages follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0-beta.2/) structure.
+## Development
+
+If you would like to improve this project check out the [Contributing Guide](./CONTRIBUTING.md). Also, you can find
+the implementation details there.
 
 ## License
 
@@ -73,6 +100,7 @@ All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
+
 1. Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
 2. Redistributions in binary form must reproduce the above copyright

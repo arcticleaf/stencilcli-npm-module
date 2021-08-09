@@ -1,5 +1,3 @@
-'use strict';
-
 const Confidence = require('confidence');
 
 const config = {
@@ -7,13 +5,6 @@ const config = {
     server: {
         host: 'localhost',
         port: 3000,
-    },
-    good: {
-        opsInterval: 1000,
-        reporters: [{
-            reporter: require('good-console'),
-            args: [{log: '*', request: '*'}],
-        }],
     },
 };
 
@@ -23,12 +14,6 @@ const criteria = {
 
 const store = new Confidence.Store(config);
 
-exports.get = function(key) {
+exports.get = (key) => store.get(key, criteria);
 
-    return store.get(key, criteria);
-};
-
-exports.meta = function(key) {
-
-    return store.meta(key, criteria);
-};
+exports.meta = (key) => store.meta(key, criteria);

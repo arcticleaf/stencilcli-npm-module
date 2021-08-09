@@ -1,72 +1,67 @@
-'use strict';
-
-const Code = require('code');
-const Lab = require('lab');
-const sinon = require('sinon');
 const RawResponse = require('./raw-response');
-const Utils = require('../../../lib/utils');
-const lab = exports.lab = Lab.script();
-const expect = Code.expect;
-const it = lab.it;
+const utils = require('../../../lib/utils');
 
-lab.describe('RawResponse', () => {
-    const data = new Buffer('<html><head></head><body>hello</body></html>');
+describe('RawResponse', () => {
+    const data = Buffer.from('<html><head></head><body>hello</body></html>');
 
     const headers = {
         'content-type': 'html/text',
     };
 
     const statusCode = 200;
-    var request;
-    var response;
-    var reply;
+    let request;
+    let response;
+    let h;
 
-    lab.beforeEach(done => {
+    beforeEach(() => {
         request = {
-            url: {path: '/'},
-            app: {themeConfig: {variationIndex: 1}},
+            url: {},
+            path: '/',
+            app: { themeConfig: { variationIndex: 1 } },
         };
 
         response = {
             code: () => response,
-            header: sinon.spy(),
+            header: jest.fn(),
         };
 
-        reply = sinon.stub().returns(response);
-        done();
+        h = {
+            response: jest.fn().mockReturnValue(response),
+        };
     });
 
-    lab.describe('respond()', () => {
-        it('should respond', done => {
-            var rawResponse = new RawResponse(data, headers, statusCode);
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
 
-            rawResponse.respond(request, reply);
+    describe('respond()', () => {
+        it('should respond', () => {
+            const rawResponse = new RawResponse(data, headers, statusCode);
 
-            expect(reply.called).to.be.true();
+            rawResponse.respond(request, h);
 
-            done();
+            expect(h.response).toHaveBeenCalled();
         });
 
-        it('should append checkout css if is the checkout page', done => {
-            request.url.path = '/checkout.php?blah=blah';
-            var rawResponse = new RawResponse(data, headers, statusCode);
+        it('should append checkout css if is the checkout page', () => {
+            request.path = '/checkout.php?blah=blah';
+            const rawResponse = new RawResponse(data, headers, statusCode);
+            const id1 = utils.int2uuid(1);
+            const id2 = utils.int2uuid(2);
+            const expectedCss = `<link href="/stencil/${id1}/${id2}/css/checkout.css"`;
 
-            rawResponse.respond(request, reply);
+            rawResponse.respond(request, h);
 
-            expect(reply.lastCall.args[0]).to.contain(`<link href="/stencil/${Utils.int2uuid(1)}/${Utils.int2uuid(2)}/css/checkout.css"`);
-
-            done();
+            expect(h.response).toHaveBeenCalledWith(expect.stringContaining(expectedCss));
         });
 
-        it('should not append transfer-encoding header', done => {
-            var rawResponse = new RawResponse(data, headers, statusCode);
+        it('should not append transfer-encoding header', () => {
+            const rawResponse = new RawResponse(data, headers, statusCode);
 
-            rawResponse.respond(request, reply);
+            rawResponse.respond(request, h);
 
-            expect(response.header.neverCalledWith('transfer-encoding')).to.be.true();
-            expect(response.header.calledWith('content-type')).to.be.true();
-
-            done();
+            expect(response.header).not.toHaveBeenCalledWith('transfer-encoding');
+            expect(response.header.mock.calls[0]).toContain('content-type');
         });
     });
 });

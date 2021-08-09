@@ -1,56 +1,51 @@
-'use strict';
-
-const  _ = require('lodash');
-const Boom = require('boom');
-const Cache = require('memory-cache');
+const _ = require('lodash');
+const Boom = require('@hapi/boom');
+const cache = require('memory-cache');
 const Crypto = require('crypto');
 const Frontmatter = require('front-matter');
-const Hoek = require('hoek');
-const Path = require('path');
-const LangAssembler = require('../../../lib/lang-assembler');
-const Pkg = require('../../../package.json');
-const Responses = require('./responses/responses');
-const TemplateAssembler = require('../../../lib/template-assembler');
-const Url = require('url');
-const Utils = require('../../lib/utils');
-const Wreck = require('wreck');
+const path = require('path');
+const { promisify } = require('util');
+
+const langAssembler = require('../../../lib/lang-assembler');
+const { RawResponse, RedirectResponse, PencilResponse } = require('./responses');
+const templateAssembler = require('../../../lib/template-assembler');
+const utils = require('../../lib/utils');
+const { readFromStream } = require('../../../lib/utils/asyncUtils');
+const NetworkUtils = require('../../../lib/utils/NetworkUtils');
+const contentApiClient = require('../../../lib/content-api-client');
+const { getPageType } = require('../../lib/page-type-util');
+
+const networkUtils = new NetworkUtils();
+
 const internals = {
     options: {},
     cacheTTL: 1000 * 15, // 15 seconds
+    graphQLCacheTTL: 1000 * 300, // 5 minutes
     validCustomTemplatePageTypes: ['brand', 'category', 'page', 'product'],
 };
 
-module.exports.register = function (server, options, next) {
-    internals.options = Hoek.applyToDefaults(internals.options, options);
+function register(server, options) {
+    internals.options = _.defaultsDeep(options, internals.options);
 
     server.expose('implementation', internals.implementation);
-
-    next();
-};
-
-module.exports.register.attributes = {
-    name: 'Renderer',
-    version: '0.0.1',
-};
+}
 
 /**
  * Renderer Route Handler
  *
  * @param request
- * @param reply
+ * @param h
  */
-internals.implementation = function (request, reply) {
-    internals.getResponse(request, function (err, response) {
-        if (err) {
-            return reply(Boom.badImplementation(err));
-        }
+internals.implementation = async (request, h) => {
+    let response;
 
-        if (response.statusCode === 401) {
-            return reply(response).code(401);
-        }
+    try {
+        response = await internals.getResponse(request);
+    } catch (err) {
+        throw Boom.badImplementation(err);
+    }
 
-        response.respond(request, reply);
-    });
+    return response.respond(request, h);
 };
 
 /**
@@ -59,7 +54,7 @@ internals.implementation = function (request, reply) {
  * @param {String|Object|Array} input
  * @returns String
  */
-internals.sha1sum = function (input) {
+internals.sha1sum = (input) => {
     return Crypto.createHash('sha1').update(JSON.stringify(input)).digest('hex');
 };
 
@@ -67,97 +62,81 @@ internals.sha1sum = function (input) {
  * Fetches data from Stapler
  *
  * @param request
- * @param callback
  */
-internals.getResponse = function (request, callback) {
-    const staplerUrlObject = request.app.staplerUrl ? Url.parse(request.app.staplerUrl) : Url.parse(request.app.storeUrl);
-    const urlObject = _.clone(request.url, true);
+internals.getResponse = async (request) => {
+    const storeUrlObj = new URL(request.app.storeUrl);
+
     const httpOpts = {
-        rejectUnauthorized: false,
-        headers: internals.getHeaders(request, {
-            get_template_file: true,
-            get_data_only: true,
+        url: Object.assign(new URL(request.url.toString()), {
+            port: storeUrlObj.port,
+            host: storeUrlObj.host,
+            protocol: storeUrlObj.protocol,
+        }).toString(),
+        headers: internals.buildReqHeaders({
+            request,
+            stencilOptions: { get_template_file: true, get_data_only: true },
+            extraHeaders: { host: storeUrlObj.host },
         }),
-        payload: request.payload,
+        accessToken: internals.options.accessToken,
+        data: request.payload,
+        method: request.method,
+        maxRedirects: 0, // handle the redirects manually to handle the redirect location
+        // If the response is an image it will be parsed wrongly, so we receive a raw data (stream)
+        //  and perform it manually depending on contentType later
+        responseType: 'stream',
+        validateStatus: (status) => status >= 200 && status < 500,
     };
-
-    // Set host to stapler host
-    httpOpts.headers.host = staplerUrlObject.host;
-
-    // Convert QueryParams with array values to php compatible names (brackets [])
-    urlObject.query = _.mapKeys(urlObject.query, function (value, key) {
-        if (_.isArray(value)) {
-            return key + '[]';
-        }
-
-        return key;
-    });
-
-    const url = Url.format({
-        protocol: staplerUrlObject.protocol,
-        host: staplerUrlObject.host,
-        pathname: urlObject.pathname,
-        search: urlObject.search,
-    });
 
     const responseArgs = {
-        httpOpts: httpOpts,
-        staplerUrlObject: staplerUrlObject,
-        url: url,
+        httpOpts,
+        storeUrlObj,
     };
 
-    // create request signature for caching
-    const httpOptsSignature = _.cloneDeep(httpOpts.headers);
-    delete httpOptsSignature.cookie;
-    const requestSignature = internals.sha1sum(request.method) + internals.sha1sum(url) + internals.sha1sum(httpOptsSignature);
-    const cachedResponse = Cache.get(requestSignature);
-
     // check request signature and use cache, if available
-    if (cachedResponse && 'get' === request.method && internals.options.useCache) {
-        // if GET request, return with cached response
-        return internals.parseResponse(cachedResponse.bcAppData, request, cachedResponse.response, responseArgs, callback);
-    } else if ('get' !== request.method) {
-        // clear when making a non-get request
-        Cache.clear();
+    const httpOptsSignature = _.omit(httpOpts.headers, ['cookie']);
+    const requestSignature = internals.sha1sum(httpOpts.url) + internals.sha1sum(httpOptsSignature);
+    const cachedResponse = cache.get(requestSignature);
+    if (cachedResponse && request.method === 'get' && internals.options.useCache) {
+        return internals.parseResponse(
+            cachedResponse.bcAppData,
+            request,
+            cachedResponse.response,
+            responseArgs,
+        );
+    }
+    if (request.method !== 'get') {
+        // clear when making a non-get request because smth may be changed
+        cache.clear();
     }
 
-    Wreck.request(request.method, url, httpOpts, function (err, response) {
-        if (err) {
-            return callback(err);
-        }
+    const response = await networkUtils.sendApiRequest(httpOpts);
 
-        if (response.statusCode === 401) {
-            return callback(null, response);
-        }
+    internals.processResHeaders(response.headers);
 
-        if (response.statusCode === 500) {
-            return callback(new Error('The BigCommerce server responded with a 500 error'));
-        }
+    // Redirect
+    if (response.status >= 301 && response.status <= 303) {
+        return internals.redirect(response, request);
+    }
+    // Else response is success (2xx), need to handle it further
+    // (5xx will be just thrown by axios)
 
-        if (response.headers['set-cookie']) {
-            response.headers['set-cookie'] = Utils.stripDomainFromCookies(response.headers['set-cookie']);
-        }
+    const contentType = response.headers['content-type'] || '';
+    const isResponseJson = contentType.toLowerCase().includes('application/json');
+    const bcAppData = isResponseJson
+        ? JSON.parse(await readFromStream(response.data))
+        : response.data;
 
-        // Response is a redirect
-        if (response.statusCode >= 301 && response.statusCode <= 303) {
-            return internals.redirect(response, request, callback);
-        }
+    // cache response
+    cache.put(
+        requestSignature,
+        {
+            bcAppData,
+            response,
+        },
+        internals.cacheTTL,
+    );
 
-        // parse response
-        Wreck.read(response, {json: true}, function (err, bcAppData) {
-            if (err) {
-                return callback(err);
-            }
-
-            // cache response
-            Cache.put(requestSignature, {
-                bcAppData: bcAppData,
-                response: response,
-            }, internals.cacheTTL);
-
-            internals.parseResponse(bcAppData, request, response, responseArgs, callback);
-        });
-    });
+    return internals.parseResponse(bcAppData, request, response, responseArgs);
 };
 
 /**
@@ -167,93 +146,111 @@ internals.getResponse = function (request, callback) {
  * @param request
  * @param response
  * @param responseArgs
- * @param callback
  * @returns {*}
  */
-internals.parseResponse = function (bcAppData, request, response, responseArgs, callback) {
-    var resourcesConfig;
-    var dataRequestSignature;
-    var httpOptsSignature;
-    var configuration = request.app.themeConfig.getConfig();
-    var httpOpts = responseArgs.httpOpts;
-    var staplerUrlObject = responseArgs.staplerUrlObject;
-    var url = responseArgs.url;
+internals.parseResponse = async (bcAppData, request, response, responseArgs) => {
+    const { httpOpts, storeUrlObj } = responseArgs;
 
-    if (!_.has(bcAppData, 'pencil_response')) {
-
+    if (typeof bcAppData !== 'object' || !('pencil_response' in bcAppData)) {
         delete response.headers['x-frame-options'];
 
         // this is a raw response not emitted by TemplateEngine
-        return callback(null, new Responses.RawResponse(
-            bcAppData,
-            response.headers,
-            response.statusCode,
-        ));
+        return new RawResponse(bcAppData, response.headers, response.status);
     }
+
+    const configuration = await request.app.themeConfig.getConfig();
 
     // If a remote call, no need to do a second call to get the data,
     // it has already come back
     if (bcAppData.remote) {
-        return callback(null, internals.getPencilResponse(bcAppData, request, response, configuration));
+        return internals.getPencilResponse(bcAppData, request, response, configuration);
+    }
+
+    httpOpts.headers = internals.buildReqHeaders({
+        request,
+        stencilOptions: { get_data_only: true },
+        stencilConfig: internals.getResourceConfig(bcAppData, request, configuration),
+        extraHeaders: { host: storeUrlObj.host },
+    });
+    httpOpts.responseType = 'json'; // In the second request we always expect json
+
+    // create request signature for caching
+    const httpOptsSignature = internals.sha1sum(_.omit(httpOpts.headers, ['cookie']));
+    const urlSignature = internals.sha1sum(httpOpts.url);
+    const dataRequestSignature = `bcapp:${urlSignature}${httpOptsSignature}`;
+    const cachedResponse2 = cache.get(dataRequestSignature);
+
+    let response2;
+    // check request signature and use cache, if available
+    if (internals.options.useCache && cachedResponse2) {
+        ({ response2 } = cachedResponse2);
     } else {
-        resourcesConfig = internals.getResourceConfig(bcAppData, request, configuration);
+        response2 = await networkUtils.sendApiRequest(httpOpts);
 
-        httpOpts.headers = internals.getHeaders(request, {get_data_only: true}, resourcesConfig);
-        // Set host to stapler host
-        httpOpts.headers.host = staplerUrlObject.host;
+        internals.processResHeaders(response2.headers);
 
-        // create request signature for caching
-        httpOptsSignature = _.cloneDeep(httpOpts.headers);
-        delete httpOptsSignature.cookie;
-        dataRequestSignature = 'bcapp:' + internals.sha1sum(url) + internals.sha1sum(httpOptsSignature);
+        // Response is a redirect
+        if (response2.status >= 301 && response2.status <= 303) {
+            return internals.redirect(response2, request);
+        }
 
-        // check request signature and use cache, if available
-        if (internals.options.useCache && Cache.get(dataRequestSignature)) {
-            var cache = Cache.get(dataRequestSignature);
+        if (response2.data && response2.data.status === 500) {
+            throw new Error('The BigCommerce server responded with a 500 error');
+        }
 
-            return callback(null, internals.getPencilResponse(cache.data, request, cache.response, configuration));
+        cache.put(dataRequestSignature, { response2 }, internals.cacheTTL);
+    }
 
+    const templateFile = response2.data.template_file;
+    const entityId = response2.data.entity_id;
+
+    const pageType = getPageType(templateFile);
+    let regionResponse = [];
+
+    if (pageType) {
+        // create request signature and use cache, if available
+        const graphQLUrlSignature = internals.sha1sum(internals.options.storeUrl + '/graphql');
+        const graphQLQuerySignature = internals.sha1sum(pageType + entityId);
+        const graphQLDataReqSignature = `graphql:${graphQLUrlSignature + graphQLQuerySignature}`;
+        const cachedGraphQLResponse = cache.get(graphQLDataReqSignature);
+
+        if (internals.options.useCache && cachedGraphQLResponse) {
+            ({ regionResponse } = cachedGraphQLResponse);
         } else {
-            Wreck.get(url, httpOpts, function (err, response, data) {
-                if (err) {
-                    return callback(err);
-                }
+            if (typeof entityId === 'number') {
+                regionResponse = await contentApiClient.getRenderedRegionsByPageTypeAndEntityId({
+                    accessToken: response2.data.context.settings.storefront_api.token,
+                    storeUrl: internals.options.storeUrl,
+                    pageType,
+                    entityId,
+                });
+            } else {
+                regionResponse = await contentApiClient.getRenderedRegionsByPageType({
+                    accessToken: response2.data.context.settings.storefront_api.token,
+                    storeUrl: internals.options.storeUrl,
+                    pageType,
+                });
+            }
 
-                // Response is a redirect
-                if (response.statusCode >= 301 && response.statusCode <= 303) {
-                    return internals.redirect(response, request, callback);
-                }
-
-                // Response is bad
-                if (response.statusCode === 500) {
-                    return callback(new Error('The BigCommerce server responded with a 500 error'));
-                }
-
-                try {
-                    data = JSON.parse(data);
-                } catch (e) {
-                    return callback(e);
-                }
-
-                // Data response is bad
-                if (data.statusCode && data.statusCode === 500) {
-                    return callback(new Error('The BigCommerce server responded with a 500 error'));
-                }
-
-                // Cache data
-                Cache.put(dataRequestSignature, {
-                    data: data,
-                    response: response,
-                }, internals.cacheTTL);
-
-                if (response.headers['set-cookie']) {
-                    response.headers['set-cookie'] = Utils.stripDomainFromCookies(response.headers['set-cookie']);
-                }
-
-                return callback(null, internals.getPencilResponse(data, request, response, configuration));
-            });
+            cache.put(graphQLDataReqSignature, { regionResponse }, internals.graphQLCacheTTL);
         }
     }
+
+    const formattedRegions = {};
+
+    if (typeof regionResponse.renderedRegions !== 'undefined') {
+        regionResponse.renderedRegions.forEach((region) => {
+            formattedRegions[region.name] = region.html;
+        });
+    }
+
+    return internals.getPencilResponse(
+        response2.data,
+        request,
+        response2,
+        configuration,
+        formattedRegions,
+    );
 };
 
 /**
@@ -262,33 +259,32 @@ internals.parseResponse = function (bcAppData, request, response, responseArgs, 
  * @param  {Object} data
  * @param  {Object} request
  * @param  {Object} configuration
- * @return {Object}
+ * @returns {Object}
  */
-internals.getResourceConfig = function (data, request, configuration) {
-    var frontmatter,
-        frontmatterRegex = /---\r?\n(?:.|\s)*?\r?\n---\r?\n/g,
-        missingThemeSettingsRegex = /{{\\s*?theme_settings\\..+?\\s*?}}/g,
-        frontmatterMatch,
-        frontmatterContent,
-        rawTemplate,
-        resourcesConfig = {},
-        templatePath = data.template_file;
+internals.getResourceConfig = (data, request, configuration) => {
+    const frontmatterRegex = /---\r?\n(?:.|\s)*?\r?\n---\r?\n/g;
+    const missingThemeSettingsRegex = /{{\\s*?theme_settings\\..+?\\s*?}}/g;
+    let resourcesConfig = {};
+    const templatePath = data.template_file;
 
     // If the requested template is not an array, we parse the Frontmatter
     // If it is an array, then it's an ajax request using `render_with` with multiple components
     // which don't have Frontmatter and needs to get it's config from the `stencil-config` header.
-    if (templatePath && !_.isArray(templatePath)) {
-        rawTemplate = TemplateAssembler.getTemplateContentSync(internals.getThemeTemplatesPath(), templatePath);
+    if (templatePath && !Array.isArray(templatePath)) {
+        let rawTemplate = templateAssembler.getTemplateContentSync(
+            internals.getThemeTemplatesPath(),
+            templatePath,
+        );
 
-        frontmatterMatch = rawTemplate.match(frontmatterRegex);
+        const frontmatterMatch = rawTemplate.match(frontmatterRegex);
         if (frontmatterMatch !== null) {
-            frontmatterContent = frontmatterMatch[0];
+            let frontmatterContent = frontmatterMatch[0];
             // Interpolate theme settings for frontmatter
-            _.forOwn(configuration.settings, function (val, key) {
-                var regex = '{{\\s*?theme_settings\\.' + key + '\\s*?}}';
+            for (const [key, val] of Object.entries(configuration.settings)) {
+                const regex = `{{\\s*?theme_settings\\.${key}\\s*?}}`;
 
                 frontmatterContent = frontmatterContent.replace(new RegExp(regex, 'g'), val);
-            });
+            }
 
             // Remove any handlebars tags that weren't interpolated because there was no setting for it
             frontmatterContent = frontmatterContent.replace(missingThemeSettingsRegex, '');
@@ -296,14 +292,12 @@ internals.getResourceConfig = function (data, request, configuration) {
             rawTemplate = rawTemplate.replace(frontmatterRegex, frontmatterContent);
         }
 
-        frontmatter = Frontmatter(rawTemplate);
-        // Set the config
+        const frontmatter = Frontmatter(rawTemplate); // Set the config
         resourcesConfig = frontmatter.attributes;
         // Merge the frontmatter config  with the global resource config
         if (_.isObject(configuration.resources)) {
             resourcesConfig = _.extend({}, configuration.resources, resourcesConfig);
         }
-
     } else if (request.headers['stencil-config']) {
         try {
             resourcesConfig = JSON.parse(request.headers['stencil-config']);
@@ -320,61 +314,54 @@ internals.getResourceConfig = function (data, request, configuration) {
  *
  * @param response
  * @param request
- * @param callback
  * @returns {*}
  */
-internals.redirect = function (response, request, callback) {
-    if (!response.headers.location) {
-        return callback(new Error('StatusCode is set to 30x but there is no location header to redirect to.'));
+internals.redirect = async (response, request) => {
+    const { location } = response.headers;
+
+    if (!location) {
+        throw new Error('StatusCode is set to 30x but there is no location header to redirect to.');
     }
 
-    response.headers.location = Utils.normalizeRedirectUrl(request, response.headers.location);
+    response.headers.location = utils.normalizeRedirectUrl(location, request.app);
 
     // return a redirect response
-    return callback(null, new Responses.RedirectResponse(
-        response.headers.location,
-        response.headers,
-        response.statusCode,
-    ));
+    return new RedirectResponse(location, response.headers, response.status);
 };
 
 /**
  *
- * @param {String} path
+ * @param {string} requestPath
  * @param {Object} data
  * @returns {string}
  */
-internals.getTemplatePath = function (path, data) {
-    var customLayouts = internals.options.customLayouts || {};
-    var pageType = data.page_type;
-    var templatePath;
+internals.getTemplatePath = (requestPath, data) => {
+    const customLayouts = internals.options.customLayouts || {};
+    const pageType = data.page_type;
+    let templatePath;
 
-    if (internals.validCustomTemplatePageTypes.indexOf(pageType) >= 0 && _.isPlainObject(customLayouts[pageType])) {
-        templatePath = _.findKey(customLayouts[pageType], function(p) {
-            // normalize input to an array
-            if (typeof p === 'string') {
-              p = [p];
-            }
+    if (
+        internals.validCustomTemplatePageTypes.includes(pageType) &&
+        _.isPlainObject(customLayouts[pageType])
+    ) {
+        templatePath = _.findKey(customLayouts[pageType], (paths) => {
+            // Can be either string or Array, so normalize to Arrays
+            const normalizedPaths = typeof paths === 'string' ? [paths] : paths;
 
-            var matches = p.filter(function(url) {
-              // remove trailing slashes to compare
-              return url.replace(/\/$/, '') === path.replace(/\/$/, '');
+            const matches = normalizedPaths.filter((url) => {
+                // remove trailing slashes to compare
+                return url.replace(/\/$/, '') === requestPath.replace(/\/$/, '');
             });
 
             return matches.length > 0;
         });
 
         if (templatePath) {
-            templatePath = Path.join('pages/custom', pageType, templatePath.replace(/\.html$/, ''));
+            templatePath = path.join('pages/custom', pageType, templatePath.replace(/\.html$/, ''));
         }
     }
 
-    if (!templatePath) {
-        // default path
-        templatePath = data.template_file;
-    }
-
-    return templatePath;
+    return templatePath || data.template_file;
 };
 
 /**
@@ -384,77 +371,88 @@ internals.getTemplatePath = function (path, data) {
  * @param request
  * @param response
  * @param configuration
+ * @param renderedRegions
  * @returns {*}
  */
-internals.getPencilResponse = function (data, request, response, configuration) {
-    data.context.theme_settings = configuration.settings;
+internals.getPencilResponse = (data, request, response, configuration, renderedRegions = {}) => {
+    const context = {
+        ...data.context,
+        theme_settings: configuration.settings,
+        template_engine: configuration.template_engine,
+        settings: {
+            ...data.context.settings,
+            // change cdn settings to serve local assets
+            cdn_url: '',
+            theme_version_id: utils.int2uuid(1),
+            theme_config_id: utils.int2uuid(request.app.themeConfig.variationIndex + 1),
+            theme_session_id: null,
+            maintenance: { secure_path: `http://localhost:${internals.options.stencilServerPort}` },
+        },
+    };
 
-    // change cdn settings to serve local assets
-    data.context.settings.cdn_url = configuration.cdn_url || '';
-    data.context.settings.theme_version_id = Utils.int2uuid(1);
-    data.context.settings.theme_config_id = Utils.int2uuid(request.app.themeConfig.variationIndex + 1);
-    data.context.settings.theme_session_id = null;
-    data.context.settings.maintenance = {secure_path: `http://localhost:${internals.options.stencilServerPort}`};
-
-    return new Responses.PencilResponse({
-        template_file: internals.getTemplatePath(request.path, data),
-        templates: data.templates,
-        remote: data.remote,
-        remote_data: data.remote_data,
-        context: data.context,
-        translations: data.translations,
-        method: request.method,
-        acceptLanguage: request.headers['accept-language'],
-        headers: response.headers,
-        statusCode: response.statusCode,
-    }, internals.themeAssembler);
+    return new PencilResponse(
+        {
+            template_file: internals.getTemplatePath(request.path, data),
+            templates: data.templates,
+            remote: data.remote,
+            remote_data: data.remote_data,
+            renderedRegions,
+            context,
+            translations: data.translations,
+            method: request.method,
+            acceptLanguage: request.headers['accept-language'],
+            headers: response.headers,
+            statusCode: response.status,
+        },
+        internals.themeAssembler,
+    );
 };
 
 /**
- * Generate and return headers
+ * Get headers from request and return a new object with processed headers
  *
- * @param request
- * @param options
- * @param config
+ * @param {object} request - Hapi request
+ * @param {[string]: string} request.headers
+ * @param {object} request.app
+ * @param {object} [stencilOptions]
+ * @param {object} [stencilConfig]
+ * @param {object} [extraHeaders] - extra headers to add to the result
+ * @returns {object}
  */
-internals.getHeaders = function (request, options, config) {
-    var currentOptions = {},
-        headers;
-
-    options = options || {};
-
-    // If stencil-config header already set, we don't want to overwrite it
-    if (!request.headers['stencil-config'] && config) {
-        request.headers['stencil-config'] = JSON.stringify(config);
-    }
-
+internals.buildReqHeaders = ({
+    request,
+    stencilOptions = {},
+    stencilConfig = null,
+    extraHeaders = {},
+}) => {
     // Merge in current stencil-options with passed in options
-    if (request.headers['stencil-options']) {
-        try {
-            currentOptions = JSON.parse(request.headers['stencil-options']);
-        } catch (e) {
-            throw e;
-        }
-    }
+    const currentOptions = request.headers['stencil-options']
+        ? JSON.parse(request.headers['stencil-options'])
+        : {};
 
-    headers = {
-        'stencil-cli': Pkg.version,
-        'stencil-version': Pkg.config.stencil_version,
-        'stencil-options': JSON.stringify(Hoek.applyToDefaults(options, currentOptions)),
+    const headers = {
+        'stencil-options': JSON.stringify({ ...stencilOptions, ...currentOptions }),
         'accept-encoding': 'identity',
     };
 
-    if (internals.options.accessToken) {
-        headers['X-Auth-Client'] = 'stencil-cli';
-        headers['X-Auth-Token'] = internals.options.accessToken;
+    if (!request.headers['stencil-config'] && stencilConfig) {
+        headers['stencil-config'] = JSON.stringify(stencilConfig);
     }
 
-    // Development
-    if (request.app.staplerUrl) {
-        headers['stencil-store-url'] = request.app.storeUrl;
-    }
+    return { ...request.headers, ...headers, ...extraHeaders };
+};
 
-    return Hoek.applyToDefaults(request.headers, headers);
+/**
+ * Process headers from Fetch response
+ *
+ * @param {Headers} headers
+ * @returns {object}
+ */
+internals.processResHeaders = (headers) => {
+    if (headers && headers['set-cookie']) {
+        // eslint-disable-next-line no-param-reassign
+        headers['set-cookie'] = utils.stripDomainFromCookies(headers['set-cookie']);
+    }
 };
 
 /**
@@ -462,36 +460,42 @@ internals.getHeaders = function (request, options, config) {
  * @type {Object}
  */
 internals.themeAssembler = {
-    getTemplates: (path, processor) => {
-        return new Promise((resolve, reject) => {
-            TemplateAssembler.assemble(internals.getThemeTemplatesPath(), path, (err, templates) => {
-                if (err) {
-                    return reject(err);
-                }
-                if (templates[path]) {
-                    // Check if the string includes frontmatter configuration and remove it
-                    const match = templates[path].match(/---\r?\n[\S\s]*\r?\n---\r?\n([\S\s]*)$/);
+    async getTemplates(templatesPath, processor) {
+        const templates = await promisify(templateAssembler.assemble)(
+            internals.getThemeTemplatesPath(),
+            templatesPath,
+        );
 
-                    if (_.isObject(match) && match[1]) {
-                        templates[path] = match[1];
-                    }
-                }
-                return resolve(processor(templates));
-            });
-        });
+        if (templates[templatesPath]) {
+            // Check if the string includes frontmatter configuration and remove it
+            const match = templates[templatesPath].match(/---\r?\n[\S\s]*\r?\n---\r?\n([\S\s]*)$/);
+
+            if (match && match[1]) {
+                // eslint-disable-next-line prefer-destructuring
+                templates[templatesPath] = match[1];
+            }
+        }
+
+        return processor(templates);
     },
     getTranslations: () => {
         return new Promise((resolve, reject) => {
-            LangAssembler.assemble((err, translations) => {
+            langAssembler.assemble((err, translations) => {
                 if (err) {
                     return reject(err);
                 }
-                return resolve(_.mapValues(translations, locales => JSON.parse(locales)));
+                return resolve(_.mapValues(translations, (locales) => JSON.parse(locales)));
             });
         });
     },
 };
 
 internals.getThemeTemplatesPath = () => {
-    return Path.join(internals.options.themePath, 'templates');
+    return path.join(internals.options.themePath, 'templates');
+};
+
+module.exports = {
+    register,
+    name: 'Renderer',
+    version: '0.0.1',
 };

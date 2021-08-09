@@ -1,31 +1,41 @@
-var _ = require('lodash');
+class RedirectResponse {
+    /**
+     * @param {string} location
+     * @param {{[string]: string[]}} headers
+     * @param {number} statusCode
+     */
+    constructor(location, headers, statusCode) {
+        this.location = location;
+        this.headers = headers;
+        this.statusCode = statusCode;
+    }
 
-module.exports = function (location, headers, statusCode) {
+    respond(request, h) {
+        const response = h.redirect(this.location).code(this.statusCode);
 
-    this.respond = function (request, reply) {
-        var response = reply.redirect(location);
-
-        response.statusCode = statusCode;
-
-        _.each(headers, (value, name) => {
+        for (const [name, values] of Object.entries(this.headers)) {
             switch (name) {
-            case 'transfer-encoding':
-                break;
-
-            case 'set-cookie':
-                response.header('set-cookie', value.map(cookie => {
-                    // remove domain & secure attributes
-                    return cookie
-                        .replace(/; Secure$/, '')
-                        .replace(/; domain=(.+)$/, '');
-                }));
-                break;
-
-            default:
-                response.header(name, value);
+                case 'transfer-encoding':
+                    break;
+                case 'set-cookie':
+                    // Cookies should be an array
+                    response.header(
+                        'set-cookie',
+                        values.map((val) =>
+                            val
+                                .replace(/; Secure/gi, '')
+                                .replace(/(?:;\s)?domain=(?:.+?)(;|$)/gi, ''),
+                        ),
+                    );
+                    break;
+                default:
+                    // Other headers should be strings
+                    response.header(name, values.toString());
             }
-        });
+        }
 
         return response;
-    };
-};
+    }
+}
+
+module.exports = RedirectResponse;
