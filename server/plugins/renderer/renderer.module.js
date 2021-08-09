@@ -386,7 +386,7 @@ internals.getPencilResponse = (data, request, response, configuration, renderedR
             theme_version_id: utils.int2uuid(1),
             theme_config_id: utils.int2uuid(request.app.themeConfig.variationIndex + 1),
             theme_session_id: null,
-            maintenance: { secure_path: `http://localhost:${internals.options.stencilServerPort}` },
+            maintenance: { secure_path: `http://localhost:${internals.options.port}` },
         },
     };
 
