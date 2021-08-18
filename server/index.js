@@ -1,7 +1,7 @@
 const Glue = require('@hapi/glue');
 const _ = require('lodash');
 const manifest = require('./manifest');
-const logo = require('./lib/show-logo');
+// const logo = require('./lib/show-logo');
 
 require('colors');
 
