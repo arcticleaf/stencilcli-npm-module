@@ -1,3 +1,20 @@
+### 3.6.2 (2021-10-06)
+
+-   feat: Add overwrite option to download command ([785](https://github.com/bigcommerce/stencil-cli/pull/785))
+
+### 3.6.1 (2021-10-04)
+
+-   fix: strf-9375 Fix custom release tag selection ([f41d6dd44fb](https://github.com/bigcommerce/stencil-cli/commit/f41d6dd44fb))
+
+### 3.6.0 (2021-09-28)
+
+-   feat: strf-9332 added timeout parameter for stencil bundle command ([9c762fa0aa1](https://github.com/bigcommerce/stencil-cli/commit/9c762fa0aa1))
+-   feat: strf-9040 Support dart-sass as primary engine for css rendering ([514ea778eda](https://github.com/bigcommerce/stencil-cli/commit/514ea778eda))
+
+### 3.5.2 (2021-09-17)
+
+-   fix: strf-9356 Support npm 7 for stencil cli ([d67747d5384](https://github.com/bigcommerce/stencil-cli/commit/d67747d5384))
+
 ### 3.5.1 (2021-09-15)
 
 -   fix: strf-9345: Fallback to API_HOST constant in the absense of a provided one ([d138536c8](https://github.com/bigcommerce/stencil-cli/commit/d138536c8))
