@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 require('colors');
 const { PACKAGE_INFO, API_HOST } = require('../constants');
 const program = require('../lib/commander');
