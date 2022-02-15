@@ -1,0 +1,8 @@
+include:
+    - project: 'Templates/CI/BuildScripts'
+      ref: main
+      file: '/.gitlab-yml/npm/publish-public.yml'
+
+lint:
+    rules:
+        - when: never

@@ -1,5 +1,5 @@
 {
-  "name": "@ali/stencil-cli",
+  "name": "@arcticleaf/stencil-cli",
   "version": "3.6.8",
   "description": "CLI tool to run BigCommerce Stores locally for theme development.",
   "main": "index.js",
@@ -10,7 +10,9 @@
     "lint": "eslint . && prettier --check . --ignore-unknown",
     "lint-and-fix": "eslint . --fix && prettier --write . --ignore-unknown",
     "test": "jest",
-    "test-with-coverage": "jest --coverage --verbose"
+    "test-with-coverage": "jest --coverage --verbose",
+    "build": "echo \"No build necessary!\"",
+    "semantic-release": "semantic-release"
   },
   "bin": {
     "stencil": "./bin/stencil.js",
@@ -27,7 +29,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bigcommerce/stencil-cli"
+    "url": "git@git.arcticleaf.io:modules/StencilCLI.git"
   },
   "author": "BigCommerce",
   "license": "BSD-4-Clause",
@@ -85,6 +87,10 @@
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
     "@commitlint/config-conventional": "^11.0.0",
+    "@semantic-release/changelog": "^6.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/gitlab": "^7.0.4",
+    "@semantic-release/npm": "^9.0.0",
     "axios-mock-adapter": "^1.19.0",
     "conventional-changelog-cli": "^2.1.0",
     "eslint": "^7.10.0",
@@ -104,7 +110,8 @@
     "husky": "^4.3.0",
     "jest": "^26.4.2",
     "lint-staged": "^10.4.0",
-    "prettier": "2.1.2"
+    "prettier": "2.1.2",
+    "semantic-release": "^19.0.2"
   },
   "husky": {
     "hooks": {
