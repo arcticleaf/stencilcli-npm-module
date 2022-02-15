@@ -11,7 +11,7 @@ _Note: Stencil requires the Node.js runtime environment,
 version 10.x and 12.x (Recommended) are supported.
 We do not yet have support for versions greater than Node 12._
 
-Run `npm install -g @bigcommerce/stencil-cli`.
+Run `npm install -g @arcticleaf/stencil-cli`.
 
 Visit the [installation guide](https://developer.bigcommerce.com/stencil-docs/getting-started/installing-stencil)
 for more details.
