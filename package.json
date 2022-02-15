@@ -1,6 +1,6 @@
 {
   "name": "@arcticleaf/stencil-cli",
-  "version": "1.16.0",
+  "version": "3.6.9",
   "description": "CLI tool to run BigCommerce Stores locally for theme development.",
   "main": "index.js",
   "engines": {

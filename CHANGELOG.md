@@ -1,3 +1,10 @@
+## [3.6.9](https://git.arcticleaf.io/modules/StencilCLI/compare/v3.6.8...v3.6.9) (2022-02-15)
+
+
+### Bug Fixes
+
+* bump version ([3e82ac7](https://git.arcticleaf.io/modules/StencilCLI/commit/3e82ac77131b686e26492993d2fac0a405b75a24))
+
 # [1.16.0](https://git.arcticleaf.io/modules/StencilCLI/compare/v1.15.7...v1.16.0) (2022-02-15)
 
 
