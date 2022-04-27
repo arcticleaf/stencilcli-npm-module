@@ -1,3 +1,99 @@
+### Draft
+
+### 4.0.0 (2022-04-11)
+
+-   Added support for node 14 and drop node 10
+
+### 3.13.0 (2022-04-08)
+
+-   feat: strf-9718 Add OAuth token to headers ([903](https://github.com/bigcommerce/stencil-cli/pull/903))
+
+### 3.12.0 (2022-03-29)
+
+-   feat: allow .css-files imports within SCSS files ([882](https://github.com/bigcommerce/stencil-cli/pull/882))
+-   bump paper version ([897](https://github.com/bigcommerce/stencil-cli/pull/897))
+
+### 3.11.0 (2022-03-10)
+
+-   feat: strf-9440 Stencil Bundle: fail on scss failure compilation ([884](https://github.com/bigcommerce/stencil-cli/pull/884))
+
+### 3.10.1 (2022-02-24)
+
+-   fix: when there's no regions on the page ([878](https://github.com/bigcommerce/stencil-cli/pull/878))
+-   fix: STRF-9667 Storefront fallback logic works incorrectly on store with Stencil CLI ([877](https://github.com/bigcommerce/stencil-cli/pull/877))
+
+### 3.10.0 (2022-02-08)
+
+-   fix(storefront): bctheme-1000 handle regular css in stencil ([845](https://github.com/bigcommerce/stencil-cli/pull/845))
+-   chore: bump paper to 3.0.0 ([868](https://github.com/bigcommerce/stencil-cli/pull/868))
+
+### 3.9.2 (2022-01-31)
+
+-   chore: bump paper to latest ([863](https://github.com/bigcommerce/stencil-cli/pull/863))
+
+### 3.9.1 (2022-01-25)
+
+-   fix: strf-9612 Fix stencil pull when there is 1 channel ([859](https://github.com/bigcommerce/stencil-cli/pull/859))
+
+### 3.9.0 (2022-01-21)
+
+-   fix: return channel id as an iterable when a store only has a single storefront ([849](https://github.com/bigcommerce/stencil-cli/pull/849))
+-   feat: warn npm users if npm is above 7 version ([846](https://github.com/bigcommerce/stencil-cli/pull/846))
+
+### 3.8.5 (2022-01-18)
+
+-   fix(storefront): strf-9594 loosed frontmatter refex ([841](https://github.com/bigcommerce/stencil-cli/pull/841))
+
+### 3.8.4 (2022-01-13)
+
+-   fix: `stencil init` command including `apiHost` option is now recognized ([830](https://github.com/bigcommerce/stencil-cli/pull/830))
+-   feat: `stencil push` command allows to push a theme to multiple channels ([825](https://github.com/bigcommerce/stencil-cli/pull/825))
+
+### 3.8.3 (2022-01-12)
+
+-   fix: add activate sass engine name logic ([837](https://github.com/bigcommerce/stencil-cli/pull/837))
+
+### 3.8.2 (2022-01-11)
+
+-   fix: strf-9600 bump stencil styles version ([832](https://github.com/bigcommerce/stencil-cli/pull/832))
+
+### 3.8.1 (2022-01-10)
+
+-   fix: Updated package.json to use colors 1.4.0 ([827](https://github.com/bigcommerce/stencil-cli/pull/827))
+
+### 3.8.0 (2021-12-30)
+
+-   build(deps): bump axios from 0.21.4 to 0.24.0 ([821](https://github.com/bigcommerce/stencil-cli/pull/821))
+-   fix: strf-9581 Update cheerio version ([819](https://github.com/bigcommerce/stencil-cli/pull/819))
+-   fix: strf-9581 Remove gulp tasks, that are not used anymore ([817](https://github.com/bigcommerce/stencil-cli/pull/817))
+
+### 3.7.1 (2021-12-20)
+
+-   fix: strf-9576 Fix graphql queries ([810](https://github.com/bigcommerce/stencil-cli/pull/810))
+-   fix: strf-9553 bundled lang.json has lowercase lang keys ([808](https://github.com/bigcommerce/stencil-cli/pull/808))
+
+### 3.7.0 (2021-12-08)
+
+-   fix: strf-9535 Add fallback for shopper language default ([804](https://github.com/bigcommerce/stencil-cli/pull/804))
+-   feat: strf-9245 Warn user if shopper default language file is missing or has missing keys ([802](https://github.com/bigcommerce/stencil-cli/pull/802))
+-   Bump paper to rc52
+
+Note: BREAKING CHANGE!
+In order to get stencil cli working with this version, new Stencil CLI token should be created
+
+### 3.6.5 (2021-11-22)
+
+-   fix: strf-4307 Frontmatter/yaml validation and trailing symbols checks ([798](https://github.com/bigcommerce/stencil-cli/pull/798))
+
+### 3.6.4 (2021-11-5)
+
+-   fix: strf-9474 Removed "git+" prefix from package-lock ([794](https://github.com/bigcommerce/stencil-cli/pull/794))
+
+### 3.6.3 (2021-10-22)
+
+-   Bump paper to rc51
+-   fix: strf-8846 Send stencil-cli header to storefront api ([789](https://github.com/bigcommerce/stencil-cli/pull/789))
+
 ### 3.6.2 (2021-10-06)
 
 -   feat: Add overwrite option to download command ([785](https://github.com/bigcommerce/stencil-cli/pull/785))
