@@ -1,6 +1,6 @@
 {
   "name": "@arcticleaf/stencil-cli",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "CLI tool to run BigCommerce Stores locally for theme development.",
   "main": "index.js",
   "engines": {
@@ -103,7 +103,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.1.4",
     "husky": "^4.3.0",
-    "jest": "^26.4.2",
+    "jest": "^27.5.1",
     "lint-staged": "^10.4.0",
     "prettier": "2.1.2",
     "semantic-release": "^19.0.2"
