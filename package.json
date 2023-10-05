@@ -1,11 +1,10 @@
 {
   "name": "@arcticleaf/stencil-cli",
-  "version": "4.1.0",
-  "description": "CLI tool to run BigCommerce Stores.",
+  "version": "3.6.9",
+  "description": "CLI tool to run BigCommerce Stores locally for theme development.",
   "main": "index.js",
   "engines": {
-    "node": ">=12.0.0 <15.0.0",
-    "npm": ">=v6.11.3 <9.0.0"
+    "node": "^10.17 || ^12"
   },
   "scripts": {
     "lint": "eslint . && prettier --check . --ignore-unknown",
@@ -47,8 +46,8 @@
     "package-lock.json"
   ],
   "dependencies": {
-    "@bigcommerce/stencil-paper": "3.0.5",
-    "@bigcommerce/stencil-styles": "3.0.0",
+    "@bigcommerce/stencil-paper": "^3.0.0-rc.48",
+    "@bigcommerce/stencil-styles": "2.1.0",
     "@hapi/boom": "^8.0.1",
     "@hapi/glue": "^6.2.0",
     "@hapi/h2o2": "^8.3.2",
@@ -58,10 +57,10 @@
     "ajv": "^6.12.5",
     "archiver": "^5.0.2",
     "async": "^3.2.0",
-    "axios": "^0.24.0",
+    "axios": "^0.21.0",
     "browser-sync": "^2.26.12",
-    "cheerio": "^1.0.0-rc.10",
-    "colors": "1.4.0",
+    "cheerio": "^0.22.0",
+    "colors": "^1.4.0",
     "commander": "^6.1.0",
     "confidence": "^4.0.2",
     "form-data": "^3.0.0",
@@ -70,7 +69,6 @@
     "graceful-fs": "^4.2.4",
     "image-size": "^0.9.1",
     "inquirer": "^8.1.5",
-    "js-yaml": "^4.1.0",
     "lodash": "^4.17.20",
     "memory-cache": "^0.2.0",
     "npm-which": "^3.0.1",
@@ -102,8 +100,15 @@
     "eslint-plugin-jest": "^24.0.2",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.1.4",
+    "gulp": "^4.0.2",
+    "gulp-bump": "^3.2.0",
+    "gulp-exec": "^5.0.0",
+    "gulp-git-streamed": "^2.10.1",
+    "gulp-if": "^3.0.0",
+    "gulp-prompt": "^1.2.0",
+    "gulp-util": "^3.0.8",
     "husky": "^4.3.0",
-    "jest": "^27.5.1",
+    "jest": "^26.4.2",
     "lint-staged": "^10.4.0",
     "prettier": "2.1.2",
     "semantic-release": "^19.0.2"

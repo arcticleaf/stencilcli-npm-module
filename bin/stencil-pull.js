@@ -5,12 +5,13 @@ require('colors');
 const { PACKAGE_INFO } = require('../constants');
 const program = require('../lib/commander');
 const stencilPull = require('../lib/stencil-pull');
-const { prepareCommand } = require('../lib/cliCommon');
+const { checkNodeVersion } = require('../lib/cliCommon');
 const { printCliResultErrorAndExit } = require('../lib/cliCommon');
 
 program
     .version(PACKAGE_INFO.version)
     .option('-s, --saved', 'get the saved configuration instead of the active one')
+    .option('-h, --host [hostname]', 'specify the api host')
     .option(
         '-f, --filename [filename]',
         'specify the filename to save the config as',
@@ -20,9 +21,12 @@ program
         '-c, --channel_id [channelId]',
         'specify the channel ID of the storefront to pull configuration from',
         parseInt,
-    );
+    )
+    .parse(process.argv);
 
-const cliOptions = prepareCommand(program);
+checkNodeVersion();
+
+const cliOptions = program.opts();
 
 const options = {
     apiHost: cliOptions.host,

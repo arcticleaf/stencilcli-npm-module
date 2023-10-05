@@ -1,8 +1,11 @@
 const _ = require('lodash');
 const Boom = require('@hapi/boom');
+const StencilStyles = require('@bigcommerce/stencil-styles');
 const path = require('path');
+const { promisify } = require('util');
+
+const cssAssembler = require('../../../lib/css-assembler');
 const utils = require('../../lib/utils');
-const cssCompiler = require('../../../lib/css/compile');
 
 const internals = {
     options: {},
@@ -55,12 +58,36 @@ internals.cssHandler = async (request, h) => {
     request.app.themeConfig.setVariation(variationIndex);
 
     // Get the theme configuration
-    const configuration = await request.app.themeConfig.getConfig();
     const fileName = internals.getOriginalFileName(request.params.fileName);
-    const themeAssetsPath = internals.getThemeAssetsPath();
+    const fileParts = path.parse(fileName);
+    const pathToFile = path.join(fileParts.dir, `${fileParts.name}.scss`);
+    const basePath = path.join(internals.getThemeAssetsPath(), 'scss');
+
+    let files;
+    try {
+        files = await promisify(cssAssembler.assemble)(pathToFile, basePath, 'scss', {});
+    } catch (err) {
+        console.error(err);
+        throw Boom.badData(err);
+    }
+
+    const configuration = await request.app.themeConfig.getConfig();
+
+    const params = {
+        data: files[pathToFile],
+        files,
+        dest: path.join('/assets/css', fileName),
+        themeSettings: configuration.settings,
+        sourceMap: true,
+        autoprefixerOptions: {
+            cascade: configuration.autoprefixer_cascade,
+            browsers: configuration.autoprefixer_browsers,
+        },
+    };
+    const stencilStyles = new StencilStyles(console);
 
     try {
-        const css = await cssCompiler.compile(configuration, themeAssetsPath, fileName);
+        const css = await stencilStyles.compileCss('scss', params);
         return h.response(css).type('text/css');
     } catch (err) {
         console.error(err);
